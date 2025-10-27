@@ -367,6 +367,7 @@
 // Complete integration with backend APIs
 
 import { LoginCredentials, ChatResponse } from '../types';
+import { cognitoService } from './CognitoService';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 const USE_MOCK = process.env.REACT_APP_USE_MOCK === 'true' || false;
@@ -394,17 +395,48 @@ class ApiService {
     }
   }
 
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
+  // private async request<T>(
+  //   endpoint: string,
+  //   options: RequestInit = {}
+  // ): Promise<T> {
+  //   const headers: Record<string, string> = {
+  //     'Content-Type': 'application/json',
+  //     ...(options.headers as Record<string, string>),
+  //   };
+
+  //   if (this.token) {
+  //     headers['Authorization'] = `Bearer ${this.token}`;
+  //   }
+
+  //   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  //     ...options,
+  //     headers,
+  //   });
+
+  //   if (!response.ok) {
+  //     const error = await response.json().catch(() => ({
+  //       detail: 'An error occurred',
+  //     }));
+  //     throw new Error(error.detail || error.message || 'Request failed');
+  //   }
+
+  //   return response.json();
+  // }
+
+  async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(options.headers as Record<string, string>),
     };
 
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
+    // Get token from Cognito (NEW!)
+    try {
+      const token = await cognitoService.getAccessToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+    } catch (err) {
+      console.log('No active Cognito session');
     }
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -413,6 +445,12 @@ class ApiService {
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        // Token expired, logout
+        cognitoService.logout();
+        window.location.href = '/login';
+      }
+      
       const error = await response.json().catch(() => ({
         detail: 'An error occurred',
       }));

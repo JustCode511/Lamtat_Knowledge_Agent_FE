@@ -38,7 +38,7 @@ export const Sidebar: React.FC = () => {
         <div className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-800 cursor-pointer">
           <div className="flex items-center gap-2">
             <User size={16} />
-            <span className="text-sm">{user?.username}</span>
+            <span className="text-sm">{user?.email}</span>
           </div>
           <button onClick={handleLogout} className="p-1 hover:bg-gray-700 rounded">
             <LogOut size={16} />
